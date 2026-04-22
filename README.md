@@ -98,5 +98,5 @@ Proces recenzji (2-4 dni) obejmuje:
 Monitorowanie wskaźników **Vitals**. W przypadku wzrostu współczynnika ANR (*Application Not Responding*), następuje natychmiastowa ścieżka poprawkowa (Patch).
 
 ### Autorzy:
-Hubert Miłuch
+Hubert Miłuch,
 Jan Rampalski
