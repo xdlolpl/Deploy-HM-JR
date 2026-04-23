@@ -1,102 +1,93 @@
-# Dokumentacja Procesu Wdrożeniowego: Aplikacja EcoTrack 
+# Dokumentacja Procesu Wdrożeniowego: Aplikacja PulseGuard (v2.0)
 
-## 1. Charakterystyka Produktu
-**EcoTrack** to innowacyjna aplikacja mobilna stworzona w technologii **Flutter** (cross-platform), której celem jest edukacja i realne zmniejszenie śladu węglowego użytkowników.
+## 1. Charakterystyka Produktu i Stack Techniczny
+**PulseGuard** to system wysokiej dostępności (High Availability). Aplikacja musi działać niezawodnie w warunkach krytycznych, co determinuje wybór technologii:
 
-### Kluczowe funkcjonalności:
-* **Smart Scanner (OCR):** Wykorzystanie aparatu do skanowania paragonów i identyfikacji produktów o wysokim śladzie węglowym.
-* **Eco-Dashboard:** Wizualizacja miesięcznej emisji $CO_2$ w formie interaktywnych wykresów.
-* **Gamifikacja:** System wyzwań (np. "Tydzień bez mięsa"), za które użytkownik zdobywa wirtualne punkty i odznaki.
-* **Integracja API:** Pobieranie danych o emisji z globalnych baz danych środowiskowych.
+* **Engine:** Flutter 3.x z natywnymi mostami (**Method Channels**) dla systemowych usług lokalizacji i Bluetooth.
+* **Sensor Fusion:** Implementacja filtrów Kalmana w celu odfiltrowania szumów z akcelerometru, co pozwala uniknąć tzw. *false-positives*.
+* **Komunikacja:** Protokół **MQTT** z mechanizmem *Quality of Service (QoS) 2*, gwarantującym dostarczenie pakietu z lokalizacją nawet przy niestabilnym łączu.
 
 ---
 
-## 2. Architektura Pipeline CI/CD
-Współczesny proces wydawniczy EcoTrack opiera się na eliminacji czynnika ludzkiego poprzez automatyzację powtarzalnych procesów.
+## 2. Zaawansowany Pipeline CI/CD (GitHub Actions)
+Automatyzacja w PulseGuard kładzie szczególny nacisk na stabilność i eliminację błędów w logice powiadamiania ratunkowego.
 
-### Definicje procesowe
-* **CI (Continuous Integration):** Automatyczne budowanie i testowanie kodu przy każdym `commit` do gałęzi głównej (`main`). Pozwala na natychmiastowe wykrycie konfliktów.
-* **CD (Continuous Deployment):** Automatyczna wysyłka przetestowanego kodu do Google Play Console bez ingerencji manualnej.
-
-### Workflow w GitHub Actions
-Pipeline podzielony jest na sekwencyjne zadania (**Jobs**) uruchamiane na runnerach Ubuntu/macOS:
-
-1.  **Checkout & Cache:** Pobranie kodu i przywrócenie cache zależności (przyspieszenie buildów o 30-50%).
-2.  **Linting & Static Analysis:** Weryfikacja standardów kodu (np. analiza `dart analyze`).
-3.  **Test Suite:** Uruchomienie testów Unit & Widget. Błąd przerywa pipeline.
-4.  **Build Release:** Kompilacja do formatu **Android App Bundle (.AAB)** – optymalizacja rozmiaru plików pod konkretne urządzenia.
-5.  **Artifact Upload:** Archiwizacja pliku binarnego na serwerze GitHub.
+### Szczegółowy Workflow:
+1.  **Static Analysis & Security Linting:**
+    * Użycie `dart_code_metrics` do monitorowania złożoności cyklomatycznej (cel: < 10).
+    * `osv-scanner` – skanowanie bibliotek pod kątem znanych podatności w bazie Google Open Source Vulnerabilities.
+2.  **Smart Caching:**
+    * Wykorzystanie `actions/cache` dla folderów `.pub-cache` oraz narzędzi budowania Gradle/CocoaPods (redukcja czasu builda o ok. 60%).
+3.  **Automated Smoke Tests:**
+    * Uruchomienie aplikacji na emulatorze i sprawdzenie, czy główny wątek (UI Thread) nie blokuje się przy starcie usług tła.
 
 ---
 
-## 3. Automatyzacja z Fastlane 
-Narzędzie **Fastlane** stanowi pomost między kodem źródłowym a sklepem Google Play, automatyzując żmudne procesy administracyjne.
+## 3. Ekosystem Fastlane – Automatyzacja „Ostatniej Mili”
+Narzędzie **Fastlane** zarządza nie tylko sklepem, ale też dystrybucją certyfikatów dla funkcji **Critical Alerts**.
 
 | Funkcja | Opis działania |
 | :--- | :--- |
-| **Zarządzanie certyfikatami** | Bezpieczne pobieranie kluczy podpisywania z zaszyfrowanego repozytorium. |
-| **Screenshot Automation** | Automatyczne zrzuty ekranu na różnych modelach telefonów (Pixel 7, Samsung S24) w wielu językach. |
-| **Metadata Management** | Wysyłka opisów, słów kluczowych i "Release Notes" jednym poleceniem: `fastlane deploy`. |
-
-> **Wartość biznesowa:** Automatyzacja redukuje czas publikacji z 40 minut do ok. 5 minut, eliminując błędy ludzkie przy manualnym przesyłaniu paczek.
+| **Match** | Synchronizacja certyfikatów i profili provisioningu pomiędzy deweloperami. |
+| **Rugged Screenshots** | Automatyczne generowanie grafik marketingowych dla różnych rozdzielczości (widok nocny, wysoki kontrast). |
+| **Beta Distribution** | Wysyłka buildu do grupy "Beta-Field-Testers" (ratownicy GOPR) po pomyślnym buildzie na `develop`. |
 
 ---
 
 ## 4. Strategiczne Wersjonowanie (SemVer)
-Stosujemy standard **Semantic Versioning** wspierany przez Google Play:
+Stosujemy ścisłą hierarchię, gdzie stabilność jest absolutnym priorytetem:
 
-* **versionCode (np. 102):** Liczba całkowita, unikalna dla każdego wdrożenia. System automatycznie inkrementuje tę wartość na podstawie numeru buildu w GitHub Actions.
-* **versionName (np. 1.2.0):**
-    * **Major (1):** Przełomowe zmiany (np. redesign UI).
-    * **Minor (2):** Nowe funkcjonalności (np. moduł społecznościowy).
-    * **Patch (0):** Poprawki błędów (Hotfixy).
-
----
-
-## 5. Strategia Testów i Jakości
-Stabilność EcoTrack gwarantuje trójwarstwowa piramida testów:
-
-1.  **Testy Jednostkowe (Unit Tests):** Weryfikacja logiki, np. czy algorytm sumujący emisję $CO_2$ poprawnie obsługuje dane brzegowe.
-2.  **Testy Integracyjne:** Sprawdzanie przepływu danych między modułami (np. Firebase Auth ↔ Profil użytkownika).
-3.  **Testy UI (User Interface):** Roboty symulujące zachowanie użytkownika (klikanie, scrollowanie, sprawdzanie powiadomień Snack-bar).
+* **versionCode (np. 1042):** Unikalny identyfikator techniczny, powiązany z numerem buildu w CI.
+* **versionName (np. 3.4.1):**
+    * **Major (3):** Przełomowe zmiany (np. nowy protokół komunikacji satelitarnej).
+    * **Minor (4):** Nowe funkcjonalności (np. wsparcie dla nowych urządzeń Garmin).
+    * **Patch (1):** Optymalizacje wydajności i poprawki błędów (Hotfixy).
 
 ---
 
-## 6. Monitoring i Cykl Życia po Wdrożeniu
-Wdrożenie to początek pętli zwrotnej (**Continuous Improvement**):
+## 5. Trójstopniowa Strategia Testów
+Zapewnienie działania aplikacji w sytuacji zagrożenia życia wymaga testów wykraczających poza standardowe UI.
 
-* **Firebase Crashlytics:** Raportowanie błędów krytycznych wraz ze "stack trace" i modelem urządzenia.
-* **Performance Monitoring:** Analiza czasu ładowania wykresów (cel: < 2s).
-* **Remote Config:** Dynamiczna zmiana parametrów UI (np. kolory kampanii) bez konieczności nowej publikacji w sklepie.
+### 5.1. Testy Jednostkowe (Unit Tests)
+Weryfikacja algorytmów obliczających wektor przyspieszenia wypadkowego:
+$$\vec{a}_{total} = \sqrt{a_x^2 + a_y^2 + a_z^2} - g$$
+
+### 5.2. Testy Integracyjne (Integration)
+Używamy frameworka **Patrol**, który pozwala na interakcję z systemowymi oknami dialogowymi (np. zgoda na lokalizację "Zawsze").
+
+### 5.3. Hardware-in-the-loop (HIL)
+Fizyczne urządzenia testowe są montowane na platformach wibracyjnych, które symulują wstrząsy podczas jazdy rowerem po ekstremalnym terenie.
 
 ---
 
-## 7. Bezpieczeństwo i Podpisywanie
-* **Keystore Management:** Cyfrowy klucz dewelopera przechowywany jest w **GitHub Secrets**. Nigdy nie trafia do kodu źródłowego.
-* **Szyfrowanie:** Dane lokalne w bazie SQLite chronione są kluczem **AES**, a komunikacja sieciowa odbywa się przez **TLS 1.3**.
-* **Zgodność z RODO:** Funkcja całkowitego usunięcia danych użytkownika z poziomu ustawień.
+## 6. Monitoring i Observability
+* **Sentry Error Tracking:** Raportowanie błędów z uwzględnieniem poziomu naładowania baterii i siły sygnału GPS w momencie awarii.
+* **Battery Lab:** Ciągłe monitorowanie zużycia energii (cel: < 4% na godzinę przy włączonym aktywnym śledzeniu).
+* **Feature Flags:** Możliwość zdalnego wyłączenia nowej funkcji map bez konieczności nowej publikacji w sklepie.
 
 ---
 
-## 8. Proces Publikacji w Google Play (Step-by-Step)
+## 7. Bezpieczeństwo i Niezawodność
+* **Fail-Safe Mechanism:** Jeśli główny proces aplikacji ulegnie awarii, systemowy "Watchdog" automatycznie restartuje usługę monitorowania.
+* **Data Sovereignty:** Dane o lokalizacji są szyfrowane algorytmem **AES-256** i przechowywane tylko przez 24h.
+* **TLS Pinning:** Aplikacja akceptuje połączenia tylko z serwerami PulseGuard o konkretnym odcisku palca certyfikatu.
 
-### Krok 1: Setup Konta
-* Rejestracja w Google Play Console (opłata 25 USD).
-* Weryfikacja tożsamości dewelopera.
+---
 
-### Krok 2: Konfiguracja Sklepu
-* **SEO Optymalizacja:** Przygotowanie opisów bogatych w słowa kluczowe.
-* **Grafiki:** Ikonka 512x512 (z kanałem alfa) oraz min. 4 screenshoty dla różnych form factorów.
+## 8. Proces Publikacji w Google Play
 
-### Krok 3: Weryfikacja Google
-Proces recenzji (2-4 dni) obejmuje:
-* Skanowanie pod kątem malware.
-* Weryfikację uprawnień (np. dostęp do aparatu dla OCR).
-* Testy jakości interfejsu (UX/UI Quality).
+### Krok 1: Safety Declaration
+Złożenie oświadczenia o wykorzystaniu wrażliwych uprawnień (lokalizacja w tle) – kluczowe dla funkcji wykrywania upadków.
 
-### Krok 4: Post-Release
-Monitorowanie wskaźników **Vitals**. W przypadku wzrostu współczynnika ANR (*Application Not Responding*), następuje natychmiastowa ścieżka poprawkowa (Patch).
+### Krok 2: Asset Preparation
+Dostarczenie filmów demonstracyjnych pokazujących reakcję aplikacji na symulowany wypadek dla recenzentów Google.
+
+### Krok 3: Review & Rollout
+* **Staged Rollout:** Udostępnienie wersji początkowo dla 10% użytkowników.
+* **Monitoring Vitals:** Jeśli współczynnik ANR przekroczy **0.47%**, proces wdrażania zostaje automatycznie wstrzymany.
+
+---
 
 ### Autorzy:
-Hubert Miłuch,
-Jan Rampalski
+**Hubert Miłuch**,  
+**Jan Rampalski** 
