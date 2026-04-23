@@ -12,6 +12,13 @@
 ## 2. Zaawansowany Pipeline CI/CD (GitHub Actions)
 Automatyzacja w PulseGuard kładzie szczególny nacisk na stabilność i eliminację błędów w logice powiadamiania ratunkowego.
 
+CI – Continuous Integration (Ciągła Integracja)
+To praktyka polegająca na tym, że programiści regularnie (często kilka razy dziennie) scalają swoje zmiany w kodzie źródłowym do głównego repozytorium
+
+ CD – Continuous Delivery / Deployment (Ciągłe Dostarczanie / Wdrażanie)
+To zestaw praktyk realizowanych po zakończeniu procesu CI. Automatyzuje wdrażanie zmian w kodzie do środowisk testowych lub produkcyjnych.
+
+
 ### Szczegółowy Workflow:
 1.  **Static Analysis & Security Linting:**
     * Użycie `dart_code_metrics` do monitorowania złożoności cyklomatycznej (cel: < 10).
